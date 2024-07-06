@@ -1,3 +1,5 @@
+use std::{process::Command, thread, time::Duration};
+
 pub struct Game {
     board: Vec<Vec<u8>>,
     generation: u32,
@@ -24,8 +26,8 @@ impl Game {
     pub fn step(&self) -> Self {
         let mut new_board = vec![vec![0; self.size]; self.size];
 
-        for row in 1..self.size - 1 {
-            for col in 1..self.size - 1 {
+        for row in 0..self.size {
+            for col in 0..self.size {
                 let neighbour_count = self.count_alive_neighbours(row, col);
                 if self.board[row][col] == 1 {
                     if neighbour_count < 2 || neighbour_count > 3 {
@@ -58,17 +60,37 @@ impl Game {
         }
     }
 
+    pub fn run(&self, duration_in_millis: u8, generations: u128) {
+        if generations == 0 {
+            loop {
+                clear_console();
+                self.show();
+                self.step();
+                thread::sleep(Duration::from_millis(duration_in_millis.into()));
+            }
+        } else {
+            let mut n = generations;
+            while n > 0 {
+                clear_console();
+                self.show();
+                self.step();
+                thread::sleep(Duration::from_millis(duration_in_millis.into()));
+                n -= 1;
+            }
+        }
+    }
+
     fn count_alive_neighbours(&self, row: usize, col: usize) -> u8 {
         let mut count = 0;
         let neighbor_offsets: [(isize, isize); 8] = [
             (1, 1),
             (1, 0),
-            (1, -1),
             (0, 1),
-            (0, -1),
-            (-1, 1),
-            (-1, 0),
             (-1, -1),
+            (-1, 0),
+            (0, -1),
+            (1, -1),
+            (-1, 1),
         ];
 
         for (dx, dy) in neighbor_offsets.iter() {
@@ -81,5 +103,13 @@ impl Game {
         }
 
         count
+    }
+}
+
+fn clear_console() {
+    if cfg!(windows) {
+        let _ = Command::new("cmd").arg("/c").arg("cls").status();
+    } else {
+        let _ = Command::new("sh").arg("-c").arg("clear").status();
     }
 }
